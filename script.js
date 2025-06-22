@@ -1,37 +1,6 @@
 // script.js (for index.html - Booking Form)
 
-// --- PWA Service Worker Registration (existing) ---
-if ('serviceWorker' in navigator) {
-    window.addEventListener('load', () => {
-        navigator.serviceWorker.register('/sw.js')
-            .then(registration => {
-                console.log('ServiceWorker registered: ', registration);
-            })
-            .catch(error => {
-                console.error('ServiceWorker registration failed: ', error);
-            });
-    });
-}
-// --- END PWA Service Worker Registration ---
-
-// --- Firebase Offline Persistence (existing) ---
-firebase.firestore().enablePersistence()
-    .then(() => {
-        console.log('Firestore offline persistence enabled!');
-    })
-    .catch((err) => {
-        if (err.code === 'failed-precondition') {
-            console.warn('Firestore persistence failed: Multiple tabs open. Only one can enable persistence at a time.');
-        } else if (err.code === 'unimplemented') {
-            console.warn('Firestore persistence failed: Browser does not support this feature.');
-        } else {
-            console.error('Firestore persistence failed:', err);
-        }
-    });
-// --- END Firebase Offline Persistence ---
-
-
-// Your web app's Firebase configuration (Please ensure this is correct)
+// Your web app's Firebase configuration
 const firebaseConfig = {
     apiKey: "AIzaSyDyX6XW9XAbEJnM7EqWcvxIJGmZK4KPebY",
     authDomain: "bartan-90d3e.firebaseapp.com",
@@ -46,169 +15,146 @@ const firebaseConfig = {
 const app = firebase.initializeApp(firebaseConfig);
 const db = app.firestore();
 const bookingsCollection = db.collection("bookings");
-const inventoryCollection = db.collection("inventory"); // ADDED: Inventory Collection
 
-// Get elements
+// Get form elements
 const bookingForm = document.getElementById('bookingForm');
-const messageElement = document.getElementById('message');
 const formTitle = document.getElementById('formTitle');
+const customerNameInput = document.getElementById('customerName');
+const customerAddressInput = document.getElementById('customerAddress');
+const customerMobileInput = document.getElementById('customerMobile');
+const itemCategoryInput = document.getElementById('itemCategory');
+const bookingDateInput = document.getElementById('bookingDate');
+const returnDateInput = document.getElementById('returnDate');
+const messageElement = document.getElementById('message');
 const submitBtn = document.getElementById('submitBtn');
+const cancelEditBtn = document.getElementById('cancelEditBtn');
 
-// Global objects to manage inventory and selected quantities
-let availableInventoryItems = {}; // Stores fetched items from inventory { 'sanitized-name': { originalName: 'Steel Plate', quantity: 100 } }
-let itemQuantities = {}; // Stores quantities selected by user for the current booking { 'sanitized-name': 5 }
+// Item input references
+const itemInputs = {
+    bhagona: document.getElementById('bhagona'),
+    tap: document.getElementById('tap'),
+    balti: document.getElementById('balti'),
+    karchhul: document.getElementById('karchhul'),
+    tasa: document.getElementById('tasa'),
+    kisti: document.getElementById('kisti'),
+    karahi: document.getElementById('karahi'),
+    kathra: document.getElementById('kathra'),
+    chulha: document.getElementById('chulha'),
+    buffet: document.getElementById('buffet'),
+    drum: document.getElementById('drum'),
+    dustbin: document.getElementById('dustbin')
+};
 
-// Utility function to sanitize item names for HTML IDs and keys
-function sanitizeItemName(name) {
-    return name.toLowerCase().replace(/\s+/g, '-').replace(/[^a-z0-9-]/g, '');
-}
+let editingBookingId = null; // To store the ID of the booking being edited
 
-// Function to fetch inventory items and populate the form
-async function fetchInventoryItemsAndRenderForm() {
-    try {
-        const snapshot = await inventoryCollection.get();
-        availableInventoryItems = {}; // Clear previous data
-        itemQuantities = {}; // Reset selected quantities
+// --- Functions ---
 
-        if (snapshot.empty) {
-            document.getElementById('itemQuantities').innerHTML = '<p>No inventory items available. Please add items to inventory first.</p>';
-            return;
+// Function to reset the form
+function resetForm() {
+    bookingForm.reset();
+    submitBtn.textContent = 'Add Booking';
+    formTitle.textContent = 'New Booking';
+    cancelEditBtn.style.display = 'none';
+    editingBookingId = null;
+    messageElement.textContent = ''; // Clear message
+    // Ensure all item quantities are reset to 0
+    for (const key in itemInputs) {
+        if (itemInputs.hasOwnProperty(key)) {
+            itemInputs[key].value = 0;
         }
-
-        snapshot.forEach(doc => {
-            const item = doc.data();
-            const sanitizedName = sanitizeItemName(item.name);
-            availableInventoryItems[sanitizedName] = {
-                originalName: item.name,
-                availableQuantity: item.quantity || 0 // Default to 0 if quantity not set
-            };
-            itemQuantities[sanitizedName] = 0; // Initialize selected quantity to 0 for new booking
-        });
-
-        renderItemInputs(); // Now render the inputs based on fetched data
-
-    } catch (error) {
-        console.error("Error fetching inventory items:", error);
-        messageElement.textContent = 'Error loading inventory items. Please try again.';
-        messageElement.style.color = 'red';
     }
 }
 
-// Function to render/re-render item quantity input fields
-function renderItemInputs() {
-    const itemQuantitiesDiv = document.getElementById('itemQuantities');
-    itemQuantitiesDiv.innerHTML = ''; // Clear previous inputs
+// Function to populate form for editing (called from bookings-script.js)
+// This function needs to be globally accessible or passed data
+// For a simple multi-page app, using localStorage or URL parameters is common for passing ID.
+// For now, we assume `bookings.html` will handle redirection if needed,
+// or you'd use a state management pattern.
+// Given the "simple" constraint and the current setup, the "Edit" button
+// on bookings.html will *redirect* to index.html with parameters
+// For a truly seamless edit experience, a single-page application structure would be better.
+// For now, we'll keep `editBooking` as a function that can *receive* data if passed.
 
-    // Iterate over the dynamically loaded items
-    for (const sanitizedName in availableInventoryItems) {
-        const itemInfo = availableInventoryItems[sanitizedName];
-        const label = itemInfo.originalName; // Use original name for label
-        const currentQuantity = itemQuantities[sanitizedName] || 0; // Use the currently selected quantity
-
-        const inputGroup = document.createElement('div');
-        inputGroup.classList.add('input-group');
-        inputGroup.innerHTML = `
-            <label for="${sanitizedName}">${label} (Available: ${itemInfo.availableQuantity}):</label>
-            <input type="number" id="${sanitizedName}" min="0" value="${currentQuantity}"
-                   max="${itemInfo.availableQuantity}"> `;
-        itemQuantitiesDiv.appendChild(inputGroup);
-
-        // Add event listener to update itemQuantities
-        document.getElementById(sanitizedName).addEventListener('input', (e) => {
-            let val = parseInt(e.target.value);
-            if (isNaN(val) || val < 0) { // Handle non-numeric or negative input
-                val = 0;
-            }
-            // Ensure quantity doesn't exceed available
-            if (val > itemInfo.availableQuantity) {
-                e.target.value = itemInfo.availableQuantity; // Set input value to max
-                itemQuantities[sanitizedName] = itemInfo.availableQuantity;
-                alert(`You can only select up to ${itemInfo.availableQuantity} of ${itemInfo.originalName}.`);
-            } else {
-                itemQuantities[sanitizedName] = val;
-            }
-        });
+// When an "Edit" button is clicked on bookings.html, it will redirect to index.html with query parameters.
+// This block will check for those parameters on page load.
+window.onload = function() {
+    const urlParams = new URLSearchParams(window.location.search);
+    const bookingId = urlParams.get('id');
+    if (bookingId) {
+        fetchBookingToEdit(bookingId);
     }
-}
+};
 
-// Function to load a booking for editing
-async function loadBookingForEdit(bookingId) {
+async function fetchBookingToEdit(id) {
     try {
-        const doc = await bookingsCollection.doc(bookingId).get();
+        const docRef = bookingsCollection.doc(id);
+        const doc = await docRef.get();
+
         if (doc.exists) {
             const booking = doc.data();
-
-            // First, load inventory, then populate form
-            await fetchInventoryItemsAndRenderForm(); // Ensure inventory is loaded before trying to pre-fill items
-
-            // Populate the booking form fields
-            document.getElementById('customerName').value = booking.customerName || '';
-            document.getElementById('customerAddress').value = booking.customerAddress || '';
-            document.getElementById('customerMobile').value = booking.customerMobile || '';
-            document.getElementById('itemCategory').value = booking.itemCategory || '';
-            document.getElementById('bookingDate').value = booking.bookingDate || '';
-            document.getElementById('returnDate').value = booking.returnDate || '';
-
-            // Pre-fill item quantities for editing based on existing booking data
-            // We re-initialize itemQuantities here from booking data
-            itemQuantities = {};
-            for (const itemKey in booking.items) {
-                const sanitizedKey = sanitizeItemName(itemKey); // Sanitize key from stored booking data
-                // Only set quantity if the item exists in our current inventory
-                if (availableInventoryItems[sanitizedKey]) {
-                    itemQuantities[sanitizedKey] = booking.items[itemKey];
-                }
-            }
-            renderItemInputs(); // Re-render with pre-filled quantities
-
-            formTitle.textContent = 'Edit Bartan Booking';
-            bookingForm.setAttribute('data-id', bookingId);
+            editingBookingId = id;
+            formTitle.textContent = 'Edit Booking';
             submitBtn.textContent = 'Update Booking';
+            cancelEditBtn.style.display = 'block';
 
-            messageElement.textContent = ''; // Clear any previous messages
+            customerNameInput.value = booking.customerName;
+            customerAddressInput.value = booking.customerAddress;
+            customerMobileInput.value = booking.customerMobile;
+            itemCategoryInput.value = booking.itemCategory || '';
+            bookingDateInput.value = booking.bookingDate;
+            returnDateInput.value = booking.returnDate;
+
+            for (const item in itemInputs) {
+                itemInputs[item].value = booking.items[item] || 0;
+            }
+            messageElement.textContent = 'Editing existing booking.';
+            messageElement.style.color = 'blue';
         } else {
-            messageElement.textContent = 'Booking not found.';
+            messageElement.textContent = 'Booking not found for editing.';
             messageElement.style.color = 'red';
         }
     } catch (e) {
-        console.error("Error loading booking for edit:", e);
-        messageElement.textContent = 'Error loading booking for edit. Please try again.';
+        console.error("Error fetching booking for edit: ", e);
+        messageElement.textContent = 'Error loading booking for edit.';
         messageElement.style.color = 'red';
     }
 }
 
 
-// Handle form submission
+// --- Event Listeners ---
+
+// Form submission (Add/Update)
 bookingForm.addEventListener('submit', async (e) => {
-    e.preventDefault(); // Prevent default form submission
+    e.preventDefault();
 
-    messageElement.textContent = ''; // Clear previous messages
+    const customerName = customerNameInput.value.trim();
+    const customerAddress = customerAddressInput.value.trim();
+    const customerMobile = customerMobileInput.value.trim();
+    const itemCategory = itemCategoryInput.value;
+    const bookingDate = bookingDateInput.value;
+    const returnDate = returnDateInput.value;
 
-    const customerName = document.getElementById('customerName').value;
-    const customerAddress = document.getElementById('customerAddress').value;
-    const customerMobile = document.getElementById('customerMobile').value;
-    const itemCategory = document.getElementById('itemCategory').value;
-    const bookingDate = document.getElementById('bookingDate').value;
-    const returnDate = document.getElementById('returnDate').value;
-
-    // Validate if any items are selected
-    let totalSelectedItems = 0;
-    const selectedItemsForBooking = {};
-    for (const itemKey in itemQuantities) {
-        if (itemQuantities[itemKey] > 0) {
-            // Use the original name for storing in Firestore for clarity
-            const originalName = availableInventoryItems[itemKey].originalName;
-            selectedItemsForBooking[originalName] = itemQuantities[itemKey];
-            totalSelectedItems += itemQuantities[itemKey];
+    const items = {};
+    for (const key in itemInputs) {
+        if (itemInputs.hasOwnProperty(key)) {
+            const quantity = parseInt(itemInputs[key].value);
+            if (!isNaN(quantity) && quantity > 0) {
+                items[key] = quantity;
+            }
         }
     }
 
-    if (totalSelectedItems === 0) {
-        messageElement.textContent = 'Please select at least one item.';
+    if (!customerName || !customerAddress || !customerMobile || !bookingDate || !returnDate) {
+        messageElement.textContent = 'Please fill in all required fields (Name, Address, Mobile, Dates).';
         messageElement.style.color = 'red';
         return;
     }
 
+    if (new Date(returnDate) < new Date(bookingDate)) {
+        messageElement.textContent = 'Return Date cannot be before Booking Date.';
+        messageElement.style.color = 'red';
+        return;
+    }
 
     const bookingData = {
         customerName: customerName,
@@ -217,63 +163,30 @@ bookingForm.addEventListener('submit', async (e) => {
         itemCategory: itemCategory,
         bookingDate: bookingDate,
         returnDate: returnDate,
-        items: selectedItemsForBooking, // Use the dynamically selected items
-        timestamp: new Date() // Will save current date/time
+        items: items,
+        timestamp: new Date()
     };
 
-    const bookingId = bookingForm.getAttribute('data-id');
-
     try {
-        if (bookingId) {
-            // Update existing booking
-            await bookingsCollection.doc(bookingId).update(bookingData);
+        if (editingBookingId) {
+            const docRef = bookingsCollection.doc(editingBookingId);
+            await docRef.update(bookingData);
             messageElement.textContent = 'Booking updated successfully!';
             messageElement.style.color = 'green';
         } else {
-            // Add new booking
-            await bookingsCollection.add(bookingData);
-            messageElement.textContent = 'Booking added successfully!';
+            const docRef = await bookingsCollection.add(bookingData);
+            messageElement.textContent = `Booking added successfully! ID: ${docRef.id}`;
             messageElement.style.color = 'green';
-            bookingForm.reset(); // Clear form for new entry
-            // Reset item quantities after successful submission
-            for(const itemKey in itemQuantities) {
-                itemQuantities[itemKey] = 0;
-            }
-            renderItemInputs(); // Re-render to clear item inputs
         }
+        resetForm();
     } catch (e) {
-        console.error("Error adding/updating document: ", e);
+        console.error("Error saving booking: ", e);
         messageElement.textContent = 'Error saving booking. Please try again.';
         messageElement.style.color = 'red';
     }
 });
 
-// Clear form button (existing)
-document.getElementById('clearFormBtn').addEventListener('click', () => {
-    bookingForm.reset();
-    bookingForm.removeAttribute('data-id');
-    formTitle.textContent = 'Add New Bartan Booking';
-    submitBtn.textContent = 'Add Booking';
-    messageElement.textContent = '';
-    // Reset item quantities and re-render for clearing
-    for(const itemKey in itemQuantities) {
-        itemQuantities[itemKey] = 0;
-    }
-    renderItemInputs(); // Re-render to clear item inputs
-});
+// Cancel Edit button
+cancelEditBtn.addEventListener('click', resetForm);
 
-// Initial page load logic: check for edit ID, then fetch inventory
-window.addEventListener('DOMContentLoaded', async () => {
-    // This assumes firebase.firestore().enablePersistence() and app.initializeApp(firebaseConfig)
-    // are called at the very top of this script or globally before this listener.
-
-    const urlParams = new URLSearchParams(window.location.search);
-    const bookingId = urlParams.get('id');
-
-    if (bookingId) {
-        await loadBookingForEdit(bookingId); // loadBookingForEdit will now call fetchInventoryItemsAndRenderForm internally
-    } else {
-        await fetchInventoryItemsAndRenderForm(); // For new bookings, just load inventory and render form
-    }
-});
-
+// No initial data load here as this is the form page.
