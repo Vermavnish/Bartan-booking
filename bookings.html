@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>All Bookings</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>All Bookings</h1>
+        <nav>
+            <a href="index.html">Booking Form</a>
+            <a href="bookings.html">View All Bookings</a>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="inventory.html">Manage Inventory</a>
+            <a href="customers.html">Customer List</a>
+            <a href="about.html">About Us</a>
+        </nav>
+
+        <div class="filter-section">
+            <h3>Filter Bookings</h3>
+            <label for="searchCustomer">Search Customer:</label>
+            <input type="search" id="searchCustomer" placeholder="Name or Mobile">
+
+            <label for="bookingDateStart">Booking Date (From):</label>
+            <input type="date" id="bookingDateStart">
+
+            <label for="bookingDateEnd">Booking Date (To):</label>
+            <input type="date" id="bookingDateEnd">
+
+            <label for="returnDateStart">Return Date (From):</label>
+            <input type="date" id="returnDateStart">
+
+            <label for="returnDateEnd">Return Date (To):</label>
+            <input type="date" id="returnDateEnd">
+
+            <button id="applyFiltersBtn">Apply Filters</button>
+            <button id="clearFiltersBtn" style="background-color: #6c757d;">Clear Filters</button>
+        </div>
+
+        <p id="bookingsMessage"></p>
+        <div id="bookingsList" class="bookings-list">
+            <p>Loading bookings...</p>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="bookings-script.js"></script>
+</body>
+</html>

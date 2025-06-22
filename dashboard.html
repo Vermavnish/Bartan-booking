@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Bartan App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Dashboard</h1>
+        <nav>
+            <a href="index.html">Booking Form</a>
+            <a href="bookings.html">View All Bookings</a>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="inventory.html">Manage Inventory</a>
+            <a href="customers.html">Customer List</a>
+            <a href="about.html">About Us</a>
+        </nav>
+
+        <h2>Summary</h2>
+        <div class="summary-grid">
+            <div class="summary-box">
+                <h3>Total Bookings</h3>
+                <p id="totalBookingsCount">0</p>
+            </div>
+            <div class="summary-box">
+                <h3>Active Bookings</h3>
+                <p id="activeBookingsCount">0</p>
+            </div>
+            <div class="summary-box">
+                <h3>Upcoming Returns (7 Days)</h3>
+                <p id="upcomingReturnsCount">0</p>
+            </div>
+            <div class="summary-box">
+                <h3>Overdue Returns</h3>
+                <p id="overdueReturnsCount">0</p>
+            </div>
+        </div>
+
+        <h2>Today's Returns</h2>
+        <div id="todayReturnsList" class="bookings-list">
+            <p>Loading today's returns...</p>
+        </div>
+
+        <h2>Upcoming Returns (Next 7 Days)</h2>
+        <div id="next7DaysReturnsList" class="bookings-list">
+            <p>Loading upcoming returns...</p>
+        </div>
+
+        <h2>Recent Bookings</h2>
+        <div id="recentBookingsList" class="bookings-list">
+            <p>Loading recent bookings...</p>
+        </div>
+
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="dashboard-script.js"></script>
+</body>
+</html>

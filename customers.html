@@ -1,0 +1,39 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Customer List - Bartan App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Customer List</h1>
+        <nav>
+            <a href="index.html">Booking Form</a>
+            <a href="bookings.html">View All Bookings</a>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="inventory.html">Manage Inventory</a>
+            <a href="customers.html">Customer List</a>
+            <a href="about.html">About Us</a>
+        </nav>
+
+        <div class="filter-section">
+            <h3>Search Customers</h3>
+            <label for="searchCustomerList">Search by Name or Mobile:</label>
+            <input type="search" id="searchCustomerList" placeholder="Enter name or mobile number">
+            <button id="applyCustomerSearchBtn">Search</button>
+            <button id="clearCustomerSearchBtn" style="background-color: #6c757d;">Clear Search</button>
+        </div>
+
+        <p id="customerMessage"></p>
+        <div id="customerList" class="bookings-list">
+            <p>Loading customer list...</p>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="customers-script.js"></script>
+</body>
+</html>

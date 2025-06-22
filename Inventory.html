@@ -1,0 +1,44 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Manage Inventory - Bartan App</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <div class="container">
+        <h1>Manage Inventory</h1>
+        <nav>
+            <a href="index.html">Booking Form</a>
+            <a href="bookings.html">View All Bookings</a>
+            <a href="dashboard.html">Dashboard</a>
+            <a href="inventory.html">Manage Inventory</a>
+            <a href="customers.html">Customer List</a>
+            <a href="about.html">About Us</a>
+        </nav>
+
+        <h2 id="inventoryFormTitle">Add New Item</h2>
+        <form id="inventoryForm">
+            <label for="inventoryItemName">Item Name:</label>
+            <input type="text" id="inventoryItemName" required>
+
+            <label for="inventoryTotalQuantity">Total Quantity:</label>
+            <input type="number" id="inventoryTotalQuantity" min="0" value="0" required>
+
+            <button type="submit" id="inventorySubmitBtn">Add Item</button>
+            <button type="button" id="cancelInventoryEditBtn" style="display:none; background-color: #6c757d; margin-top: 10px;">Cancel Edit</button>
+        </form>
+        <p id="inventoryMessage"></p>
+
+        <h2 style="margin-top: 40px;">Current Inventory</h2>
+        <div id="inventoryList" class="bookings-list">
+            <p>Loading inventory...</p>
+        </div>
+    </div>
+
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+    <script src="inventory-script.js"></script>
+</body>
+</html>
